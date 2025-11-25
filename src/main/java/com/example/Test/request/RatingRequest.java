@@ -1,19 +1,21 @@
 package com.example.Test.request;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
-@Data
-@Builder
-@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class RatingRequest {
-    private int id;
-    private String movieCode;
-    private String title;
-    private String director;
-    private String releaseYear;
-    private RatingRequest ratingRequest;
+
+    @NotBlank
+    private String reviewerName;
+
+    @Min(1)
+    @Max(10)
+    private int score;
+
+    private String reviewText;
 }

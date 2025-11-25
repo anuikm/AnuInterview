@@ -1,21 +1,27 @@
 package com.example.Test.request;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.example.Test.request.RatingRequest;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
-@Data
-@Builder@AllArgsConstructor
+@Getter
+@Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class MovieRequest {
-    private int id;
-    private String movieId;
-    private String reviewerName;
-    private int score;
-    private String reviewText;
-    private String ratedOn;
-    private RatingRequest ratingRequest;
+
+    @NotBlank
+    private String movieCode;
+
+    @NotBlank
+    private String title;
+
+    @NotBlank
+    private String director;
+
+    private int releaseYear;
+
+    @NotNull
+    private RatingRequest rating;
 }

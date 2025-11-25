@@ -6,76 +6,94 @@ import com.example.Test.repository.MovieRepository;
 import com.example.Test.repository.RatingRepository;
 import com.example.Test.request.MovieRequest;
 import com.example.Test.request.MovieResponse;
-import com.example.Test.request.RatingRequest;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.view.RedirectView;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
-
 @Service
-@NoArgsConstructor(force = true)
+@RequiredArgsConstructor
+@Transactional
 public class MovieService {
     private final MovieRepository movieRepository;
     private final RatingRepository ratingRepository;
-    public Movie createMovie(MovieRequest movieRequest){
-        RatingRequest request = movieRequest.getRatingRequest();
-                Rating newRating =Rating.builder()
-                .id(request.getId())
-                        .movieCode(request.getMovieCode())
-                        .director(request.getDirector())
-                        .releaseYear(request.getReleaseYear())
-                        .title(request.getTitle())
-                        .build();
-                Rating savedRating = ratingRepository.save(newRating);
-        Movie newMovie = new Movie();
-        newMovie.builder().movieId(movieRequest.getMovieId())
-                .id(movieRequest.getId())
-                .reviewerName(movieRequest.getReviewerName())
-                .score(movieRequest.getScore())
-                .ratedOn(movieRequest.getRatedOn())
-                .reviewText(movieRequest.getReviewText())
-                .rating(savedRating)
+
+
+    public MovieResponse createMovie(MovieRequest request) {
+        Movie movie = Movie.builder()
+                .movieCode(request.getMovieCode())
+                .title(request.getTitle())
+                .director(request.getDirector())
+                .releaseYear(request.getReleaseYear())
                 .build();
-        return movieRepository.save(newMovie);
-    }
 
-    public Map<String, Object> getMovieDetails(String movieCode) {
-        Movie movie = movieRepository.findByMovieCodeIgnoreCase(movieCode)
-                .orElseThrow(() -> new RuntimeException("Movie not found"));
-        List <Rating> ratings =  ratingRepository.findAll();
+        Rating rating = Rating.builder()
+                .movie(movie)
+                .reviewerName(request.getRating().getReviewerName())
+                .score(request.getRating().getScore())
+                .reviewText(request.getRating().getReviewText())
+                .ratedOn(LocalDateTime.now())
+                .build();
 
-        List<Movie> movies = movieRepository.findByMovieId(movie.getId());
-        List<String> reviews= movies.stream()
-                .map(m -> m.getReviewText())
-                .filter(Objects::nonNull)
+        movie.setRatings(List.of(rating));
+        movieRepository.save(movie);
+
+        List<MovieResponse.RatingDTO> ratings = movie.getRatings().stream()
+                .map(r -> MovieResponse.RatingDTO.builder()
+                        .reviewerName(r.getReviewerName())
+                        .score(r.getScore())
+                        .reviewText(r.getReviewText())
+                        .build())
                 .collect(Collectors.toList());
-        double avgRating = movies.stream()
-                .mapToInt(Movie::getScore)
-                .average()
-                .orElse(0.0);
-        Map<Integer, Long> ratingCount = new HashMap<>();
 
-        for (int i = 1; i <= 10; i++) {
-            final int rating = i;
-            ratingCount.put(i, movies.stream().filter(r -> r.getScore() == rating).count());
-        }
-        return Map.of(
-                "movie", movie,
-                "Ratings", reviews,
-                "averageRating", avgRating,
-                "totalRating", ratings.size(),
-                "ScoreDistribution", ratingCount
-        );
+        double avg = ratings.stream().mapToInt(MovieResponse.RatingDTO::getScore).average().orElse(0);
+        long total = ratings.size();
+        Map<Integer, Long> distribution = ratings.stream()
+                .collect(Collectors.groupingBy(MovieResponse.RatingDTO::getScore, Collectors.counting()));
+
+        return MovieResponse.builder()
+                .movieCode(movie.getMovieCode())
+                .title(movie.getTitle())
+                .director(movie.getDirector())
+                .releaseYear(movie.getReleaseYear())
+                .ratings(ratings)
+                .averageRating(avg)
+                .totalRatings(total)
+                .scoreDistribution(distribution)
+                .build();
     }
+
+    public MovieResponse getMovieDetails(String movieCode) {
+        Movie movie = movieRepository.findByMovieCode(movieCode)
+                .orElseThrow(() -> new NoSuchElementException("Movie not found"));
+
+        List<MovieResponse.RatingDTO> ratings = movie.getRatings().stream()
+                .map(r -> MovieResponse.RatingDTO.builder()
+                        .reviewerName(r.getReviewerName())
+                        .score(r.getScore())
+                        .reviewText(r.getReviewText())
+                        .build())
+                .collect(Collectors.toList());
+
+        double avg = ratings.stream().mapToInt(MovieResponse.RatingDTO::getScore).average().orElse(0);
+        long total = ratings.size();
+        Map<Integer, Long> distribution = ratings.stream()
+                .collect(Collectors.groupingBy(MovieResponse.RatingDTO::getScore, Collectors.counting()));
+
+        return MovieResponse.builder()
+                .movieCode(movie.getMovieCode())
+                .title(movie.getTitle())
+                .director(movie.getDirector())
+                .releaseYear(movie.getReleaseYear())
+                .ratings(ratings)
+                .averageRating(avg)
+                .totalRatings(total)
+                .scoreDistribution(distribution)
+                .build();
+    }
+
 
 }

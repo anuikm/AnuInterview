@@ -1,22 +1,24 @@
 package com.example.Test.controller;
 
 import com.example.Test.request.MovieRequest;
+import com.example.Test.request.MovieResponse;
 import com.example.Test.service.MovieService;
 import jakarta.validation.Valid;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class MovieController {
-    private MovieService movieService;
+    private final MovieService movieService;
     @PostMapping("/movies")
-    public Object createMovie(@Valid @RequestBody MovieRequest request){
-        return movieService.createMovie(request);
+    public ResponseEntity<MovieResponse> createMovie(@Valid @RequestBody MovieRequest request){
+        return ResponseEntity.ok(movieService.createMovie(request));
     }
     @GetMapping("/movies/{movieCode}")
-    public Object getMovie(@PathVariable String movieCode){
-        return movieService.getMovieDetails(movieCode);
+    public ResponseEntity<MovieResponse>  getMovie(@PathVariable String movieCode){
+        return ResponseEntity.ok(movieService.getMovieDetails(movieCode));
     }
 }
